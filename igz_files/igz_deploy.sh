@@ -12,6 +12,10 @@ NGINX_IMAGE=iguazio/nginx_server:latest
 RESET="no"
 SKIP_INSTALL="no"
 SCALE_OUT="no"
+# Get the number of arguments
+num_args=$#
+# Get the last argument directly
+SUDO_PASS="${!num_args}"
 DEPLOYMENT_PLAYBOOK="cluster.yml"
 LOCAL_REGISTRY=${LOCAL_REGISTRY:-"localhost:${REGISTRY_PORT}"}
 if [ -f /etc/ansible/facts.d/haproxy.fact ]; then
@@ -44,8 +48,19 @@ if [ "$SCALE_OUT" == "yes" ]; then
  SKIP_INSTALL="no"
 fi
 
+echo "==> Extract Kubespray"
+./extract-kubespray.sh
 # The files in kubespray dir are owned by root and we don't like it
-chown -R iguazio:iguazio .
+#chown -R iguazio:iguazio .
+
+echo "==> Install python3.9 on controller"
+echo $SUDO_PASS | sudo -S rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
+
+echo "==> Create venv and install requirements"
+python3.9 -m venv venv
+echo "######## Working in venv ########"
+. venv/bin/activate
+python -m pip install --no-index --find-links=k8s_requirements -r requirements.txt
 
 echo "==> Build Iguazio inventory"
 python3 ./igz_inventory_builder.py "${@: -4}" "$HAPROXY"

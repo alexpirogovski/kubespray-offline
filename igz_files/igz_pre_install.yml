@@ -1,26 +1,27 @@
 - name: Prepare containers
-  hosts: k8s_clients
+  hosts: localhost
+  connection: local
   tasks:
-    - name: Check if datanode registry is running
-      ansible.builtin.shell: docker ps --quiet --filter name=kompton_registry
-      register: registry_is_running
+    - name: Check if 'registry' container is running
+      shell: "{% raw %}docker ps --filter 'name=registry' --filter 'status=running' --format '{{.Names}}'{% endraw %}"
+      register: registry_running
       changed_when: false
-      tags:
-        - skip_ansible_lint
 
-    - name: Bring up Kompton registry
+    - name: Bring up datanode registry
       ansible.builtin.shell: >
-        docker run -d --restart always --name kompton_registry
-        -v {{ ansible_local['registry']['kompton']['docker_registry_path'] }}:/var/lib/registry
-        -p {{ ansible_local['registry']['kompton']['kompton_registry_port'] }}:5000
-        {{ ansible_local['registry']['kompton']['docker_registry_image'] }}
+        docker run -d --restart always --name datanode_registry
+        -v /mnt/docker_registry:/var/lib/registry
+        -p 8009:5000
+        iguazio/registry:latest
       args:
         executable: /bin/bash
       environment:
         REGISTRY_STORAGE_FILESYSTEM_MAXTHREADS: "{{ ansible_local['registry']['kompton']['registry_fs_maxthreads'] }}"
       when: registry_is_running.stdout == ""
-      tags:
-        - skip_ansible_lint
+
+    - name: Set outputs dir
+      set_fact:
+        outputs_dir: "{{ (playbook_dir + '/../') | realpath }}"
 
     - name: Start nginx for Kubespray
       ansible.builtin.shell: |
@@ -30,16 +31,9 @@
         -d -p 18080:80 \
         --restart always \
         --name kubespray_nginx \
-        -v "{{ ansible_local['registry']['kompton']['kubespray_dir'] }}/outputs:/usr/share/nginx/html" \
+        -v "{{ outputs_dir }}:/usr/share/nginx/html" \
         iguazio/nginx_server:latest
-      tags:
-        - skip_ansible_lint
 
-    - name: Start HAProxy service on data nodes
-      ansible.builtin.systemd:
-        name: haproxy
-        state: started
-      become: true
-      when:
-        - ansible_local.haproxy.haproxy.enabled is defined
-        - ansible_local.haproxy.haproxy.enabled == "true"
+    - name: Push k8s images to datanode registry
+      
+

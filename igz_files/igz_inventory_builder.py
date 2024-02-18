@@ -185,7 +185,7 @@ class SysConfigProcessor:
 
         # TODO: Read the ports from Kompton facts somehow
         igz_registry_host = self.data_nodes[0] if not self.get_haproxy() else self.data_vip
-        igz_registry_port = 28009 if not self.get_haproxy() else 18009
+        igz_registry_port = 8009 if not self.get_haproxy() else 18009
         external_ips = [node['external_ip_address'] for node in self.nodes if node['external_ip_address']]
         if self.vip:
             external_ips.append(self.vip['ip_address'])
@@ -209,10 +209,10 @@ class SysConfigProcessor:
            output_file (str): Path to the output YAML file. Default is "igz_offline.yml".
         """
         # TODO: Read the ports from Kompton facts somehow
-        igz_registry_host=self.data_nodes[0] if not self.get_haproxy() else self.data_vip
-        igz_registry_port=28009 if not self.get_haproxy() else 18009
-        igz_registry_addr=f'http://{ igz_registry_host }:{ igz_registry_port }'
-        system_fqdn='.'.join([self.system_id, self.domain])
+        igz_registry_host = self.data_nodes[0] if not self.get_haproxy() else self.data_vip
+        igz_registry_port = 8009 if not self.get_haproxy() else 18009
+        igz_registry_addr = f'http://{ igz_registry_host }:{ igz_registry_port }'
+        system_fqdn = '.'.join([self.system_id, self.domain])
 
         containerd_registries_mirrors = '''
         containerd_registries_mirrors:
