@@ -87,26 +87,28 @@ find ../ -maxdepth 1 -type f -name 'igz_*' -exec cp '{}' . ';'
 cp -r ../playbook .
 
 # Run igz_preinstall playbook
-./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini igz_pre_install.yml --become --extra-vars=@igz_override.yml
+ansible-playbook -i inventory/igz/igz_inventory.ini igz_pre_install.yml --become --extra-vars=@igz_override.yml
 
 # Run offline repo playbook
-./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini playbook/offline-repo.yml --become --extra-vars=@igz_override.yml
+ansible-playbook -i inventory/igz/igz_inventory.ini playbook/offline-repo.yml --become --extra-vars=@igz_override.yml
 
 # Reset Kubespray
 if [[ "${RESET}" == "yes" ]]; then
   echo "==> Reset Kubernetes"
-  ./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini reset.yml --become --extra-vars=@igz_override.yml --extra-vars reset_confirmation=yes
-  ./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini igz_reset.yml --become --extra-vars=@igz_override.yml
+  ansible-playbook -i inventory/igz/igz_inventory.ini reset.yml --become --extra-vars=@igz_override.yml --extra-vars reset_confirmation=yes
+  ansible-playbook -i inventory/igz/igz_inventory.ini igz_reset.yml --become --extra-vars=@igz_override.yml
 fi
 
 # Run kubespray
 if [[ "${SKIP_INSTALL}" == "no" ]]; then
     echo "==> Install  Kubernetes"
-    ./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini $DEPLOYMENT_PLAYBOOK --become --extra-vars=@igz_override.yml
-    ./igz_run_ansible.sh -i inventory/igz/igz_inventory.ini igz_post_install.yml --become --extra-vars=@igz_override.yml
+    ansible-playbook -i inventory/igz/igz_inventory.ini $DEPLOYMENT_PLAYBOOK --become --extra-vars=@igz_override.yml
+    ansible-playbook -i inventory/igz/igz_inventory.ini igz_post_install.yml --become --extra-vars=@igz_override.yml
 fi
 
 popd
+deactivate
+echo "######## venv deactivated ########"
 
 echo "<=== Kubespray deployed. Happy k8s'ing ===>"
 exit 0

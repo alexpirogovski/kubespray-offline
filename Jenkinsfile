@@ -1,28 +1,17 @@
 @Library('pipelinex@development') _
 
-def upload_to_s3_generic(aws_auth_id, bucket, bucket_region, source, dest, follow_sym_links = false) {
-    withEnv(["AWS_DEFAULT_REGION=${bucket_region}"]) {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: aws_auth_id]]) {
-            common.shell(['virtualenv', '-p', 'python3', 'venv'])
-            common.shell(['source', 'venv/bin/activate'])
-            common.shell(['python', '-V'])
-            common.shell(['python', '-m', 'pip', 'install', 'awscli'])
-            common.shell(['aws', 'configure', 'set', 'default.s3.max_concurrent_requests', '50'])
+def buildContainer(distro, tag) {
+    docker_file = "Dockerfile_${distro}"
+    image_name = "devops/${distro}_kubespray_builder:${tag}"
+    common.shell(['docker', 'build', '-t', image_name, '-f', docker_file, '.'])
+} // Closes function definition
 
-            def is_dir = sh(script: "test -d ${source}", returnStatus: true)
-            def s3_cmd = is_dir == 0 ? 'sync' : 'cp'
-            def symlinks_follow_arg = follow_sym_links ? '--follow-symlinks' : '--no-follow-symlinks'
-            def cmd = ['aws', 's3', s3_cmd, '--no-progress', symlinks_follow_arg, '--storage-class', 'REDUCED_REDUNDANCY', source, "s3://${bucket}/${dest}"]
-
-            common.shell(cmd)
-        }
-    }
-}
-
-def upload_to_s3(bucket, bucket_region, source, dest, follow_sym_links = false) {
-    def amazon_auth_id = '42a3c90a-5640-4894-87d0-e9cd6bb000cb'
-    upload_to_s3_generic(amazon_auth_id, bucket, bucket_region, source, dest, follow_sym_links)
-}
+def runContainer(distro, tag) {
+    image_name = "devops/${distro}_kubespray_builder:${tag}"
+    sh "docker run -v \$(pwd)/${distro}_outputs:/outputs -v /var/run/docker.sock:/var/run/docker.sock ${image_name} || exit 1"
+    common.shell(['docker', 'rm', '-f', image_name])
+    common.shell(['docker', 'rmi', '-f', image_name])
+} // Closes function definition
 
 def config = common.get_config()
 
@@ -41,26 +30,42 @@ common.main {
         timestamps {
 
             stage('checkout') {
-                deleteDir()
+                sh "sudo rm -rf ${WORKSPACE}/*"
                 final scm_vars = checkout scm
 
                 env.kubespray_hash = scm_vars.GIT_COMMIT
                 currentBuild.description = "branch ${env.BRANCH_NAME}, ${env.kubespray_hash}"
             }
 
+            stage('apply pre-build igz patches') {
+                dir('./') {
+                    sh("igz_files/igz_prebuild_patch.sh")
+                }
+            }
+
             stage('build') {
                 dir('./') {
-                    def docker_img_name = "devops/kubespray_builder:${env.kubespray_hash}"
+                    parallel (
+                        "build_rocky8": {
+                            //buildContainer('rocky8', env.kubespray_hash)
+                            //runContainer('rocky8', env.kubespray_hash)
+                        }, // Closes build_rocky8 block
+                        "build_centos7": {
+                            buildContainer('centos7', env.kubespray_hash)
+                            runContainer('centos7', env.kubespray_hash)
+                        } // Closes build_centos7 block
+                    )
+                }
+            }
 
-                    common.shell(['docker', 'build', '-f', 'Dockerfile_centos7', '-t', docker_img_name, '.'])
-
-                    try {
-                            sh "docker run -v \$(pwd)/outputs:/outputs -v /var/run/docker.sock:/var/run/docker.sock ${docker_img_name} || exit 1"
-                    } finally {
-                        // let's save time and bandwidth
-                        common.shell(['docker', 'rm', '-f', docker_img_name])
-                        common.shell(['docker', 'rmi', '-f', docker_img_name])
-                    }
+            stage('merge assets and build ansible container') {
+                dir('./') {
+//                     sh("mv rocky8_outputs/rpms rocky8_outputs/rocky8_rpms")
+//                     sh("mv centos7_outputs/rpms centos7_outputs/centos7_rpms")
+//                     sh("rm -rf outputs")
+                    sh("mv centos7_outputs outputs")
+//                     sh("mv centos7_outputs/centos7_rpms outputs")
+//                     sh("igz_files/igz_build_ansible.sh")
                 }
             }
 
@@ -75,7 +80,7 @@ common.main {
                     'upload_to_s3': {
                         def bucket = 'iguazio-versions'
                         def bucket_region = 'us-east-1'
-                        upload_to_s3(bucket, bucket_region, 'outputs', "build_by_hash/kubespray/${env.kubespray_hash}/pkg/kubespray/outputs")
+                        common.upload_to_s3(bucket, bucket_region, 'outputs', "build_by_hash/kubespray/${env.kubespray_hash}/pkg/kubespray/outputs")
                     }
                 )
             }
