@@ -46,7 +46,7 @@
 
     - name: Push k8s images to datanode registry
       shell: |
-        python3 /usr/local/bin/push.py \
+        python3 /usr/local/bin/igz_push.py \
         -sl "{{ tarballs.files | map(attribute='path') | list }}" \
         -hf "{{ kompton_dir }}/group_vars/all/020_packaging.yml" \
         -dr localhost:8009
