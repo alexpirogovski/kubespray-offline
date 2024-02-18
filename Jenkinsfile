@@ -63,6 +63,7 @@ common.main {
 //                     sh("mv rocky8_outputs/rpms rocky8_outputs/rocky8_rpms")
 //                     sh("mv centos7_outputs/rpms centos7_outputs/centos7_rpms")
                     sh("rm -rf outputs")
+                    sh("ls -la")
                     sh("mv centos7_outputs outputs/")
 //                     sh("mv centos7_outputs/centos7_rpms outputs")
 //                     sh("igz_files/igz_build_ansible.sh")

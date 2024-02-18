@@ -4,7 +4,7 @@
   tasks:
     - name: Check if 'registry' container is running
       shell: "{% raw %}docker ps --filter 'name=registry' --filter 'status=running' --format '{{.Names}}'{% endraw %}"
-      register: registry_running
+      register: registry_is_running
       changed_when: false
 
     - name: Bring up datanode registry

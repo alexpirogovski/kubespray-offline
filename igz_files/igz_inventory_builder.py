@@ -45,8 +45,6 @@ class SysConfigProcessor:
         self.system_id = ''
         self.domain = ''
         self.data_vip = None
-        self.distro = ''
-        self.haproxy = ''
 
         with open(self.yaml_file, 'r') as file:
             self.config = yaml.safe_load(file)
@@ -144,9 +142,6 @@ class SysConfigProcessor:
         else:
             self.data_vip = None
 
-    def get_haproxy(self):
-        return True if self.data_vip and self.haproxy else False
-
     def generate_inventory(self, template_file="./igz_inventory.ini.j2", output_file="igz_inventory.ini"):
         """
         Generates an INI file using a Jinja2 template, populated with the extracted
@@ -162,13 +157,12 @@ class SysConfigProcessor:
         data_nodes = self.data_nodes
         username = self.username
         password = self.password
-        distro = self.distro
 
         # Render the template with the new variable
         rendered_template = template.render(app_nodes=app_nodes, data_nodes=data_nodes,
                                             username=username,
-                                            password=password,
-                                            distro=distro)
+                                            password=password
+                                            )
 
         SysConfigProcessor._write_template(output_file, rendered_template)
     
@@ -184,8 +178,8 @@ class SysConfigProcessor:
         template = SysConfigProcessor._get_template_file(template_file)
 
         # TODO: Read the ports from Kompton facts somehow
-        igz_registry_host = self.data_nodes[0] if not self.get_haproxy() else self.data_vip
-        igz_registry_port = 8009 if not self.get_haproxy() else 18009
+        igz_registry_host = self.data_nodes[0]
+        igz_registry_port = 8009
         external_ips = [node['external_ip_address'] for node in self.nodes if node['external_ip_address']]
         if self.vip:
             external_ips.append(self.vip['ip_address'])
@@ -209,8 +203,8 @@ class SysConfigProcessor:
            output_file (str): Path to the output YAML file. Default is "igz_offline.yml".
         """
         # TODO: Read the ports from Kompton facts somehow
-        igz_registry_host = self.data_nodes[0] if not self.get_haproxy() else self.data_vip
-        igz_registry_port = 8009 if not self.get_haproxy() else 18009
+        igz_registry_host = self.data_nodes[0]
+        igz_registry_port = 8009
         igz_registry_addr = f'http://{ igz_registry_host }:{ igz_registry_port }'
         system_fqdn = '.'.join([self.system_id, self.domain])
 
@@ -284,8 +278,6 @@ def _parse_cli():
     parser.add_argument('system_config')
     parser.add_argument('user')
     parser.add_argument('password')
-    parser.add_argument('distro')
-    parser.add_argument('haproxy')
     return parser.parse_args()
 
 
@@ -297,13 +289,9 @@ def main_flow():
     system_config = args.system_config
     username = args.user
     password = args.password
-    distro = args.distro
-    haproxy = args.haproxy
     config_processor = SysConfigProcessor(system_config)
     config_processor.username = username
     config_processor.password = password
-    config_processor.distro = distro
-    config_processor.haproxy = True if haproxy == 'true' else False
 
     config_processor.generate_inventory()
     config_processor.generate_overrides()

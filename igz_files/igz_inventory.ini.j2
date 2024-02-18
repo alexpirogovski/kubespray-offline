@@ -4,11 +4,6 @@
 k8s-node{{ loop.index }} ansible_host={{ node.mgmt_ip_address }} ansible_user={{ username }} ansible_ssh_pass={{ password }} ansible_become_password={{ password }} ip={{ node.client_ip_address }}{% if loop.index <= 3 %} etcd_member_name=etcd{{ loop.index }}{% endif %}{{''}}
 {% endfor %}
 
-{% if distro == 'rocky' %}
-[all:vars]
-ansible_python_interpreter=/usr/bin/python3.6
-{% endif %}
-
 [kube_control_plane]
 {% if app_nodes|length < 3 %}
 k8s-node1

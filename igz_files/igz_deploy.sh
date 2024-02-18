@@ -18,11 +18,10 @@ num_args=$#
 SUDO_PASS="${!num_args}"
 DEPLOYMENT_PLAYBOOK="cluster.yml"
 LOCAL_REGISTRY=${LOCAL_REGISTRY:-"localhost:${REGISTRY_PORT}"}
-if [ -f /etc/ansible/facts.d/haproxy.fact ]; then
-    HAPROXY=$(grep 'enabled' /etc/ansible/facts.d/haproxy.fact | awk -F ' = ' '{print $2}') || HAPROXY="false"
-else
-    HAPROXY="false"
-fi
+
+run_with_sudo() {
+    echo $SUDO_PASS | sudo -S "$@"
+}
 
 ###### Flow starts here ##########################
 
@@ -51,25 +50,30 @@ fi
 echo "==> Extract Kubespray"
 ./extract-kubespray.sh
 # The files in kubespray dir are owned by root and we don't like it
-#chown -R iguazio:iguazio .
+chown -R iguazio:iguazio .
 
 echo "==> Install python3.9 on controller"
-if ! command -v python3.9 &> /dev/null; then
-  echo $SUDO_PASS | sudo -S rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
+if ! rpm -q python39-3.9.16-standalone.el7.x86_64 &> /dev/null; then
+  echo "===> Install python3.9"
+  rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
+else
+  echo "===> python3.9 is already installed"
 fi
 
-echo "==> Copy pushing script"
-chmod +x igz_push.py
-echo $SUDO_PASS | sudo -S cp igz_push.py /usr/local/bin/
+PYTHON39=/usr/local/bin/python3.9
+
+cp push.py /usr/local/bin/
 
 echo "==> Create venv and install requirements"
-python3.9 -m venv venv
+cp $KUBESPRAY_DIR_NAME/requirements.txt .
+$PYTHON39 -m venv venv
 echo "######## Working in venv ########"
 . venv/bin/activate
 python -m pip install --no-index --find-links=k8s_requirements -r requirements.txt
+cp /usr/bin/sshpass venv/bin/
 
 echo "==> Build Iguazio inventory"
-python3 ./igz_inventory_builder.py "${@: -4}" "$HAPROXY"
+python ./igz_inventory_builder.py "${@: -3}"
 
 # Don't stop containers in case of scale out - it's a live data node!
 if [ "$SCALE_OUT" == "yes" ]; then
@@ -92,6 +96,7 @@ find ../ -maxdepth 1 -type f -name 'igz_*' -exec cp '{}' . ';'
 cp -r ../playbook .
 
 # Run igz_preinstall playbook
+echo "==> Starting Ansible"
 ansible-playbook -i inventory/igz/igz_inventory.ini igz_pre_install.yml --become --extra-vars=@igz_override.yml
 
 # Run offline repo playbook
