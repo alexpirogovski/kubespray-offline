@@ -22,6 +22,7 @@
     - name: Set outputs dir
       set_fact:
         outputs_dir: "{{ (playbook_dir + '/../') | realpath }}"
+        kompton_dir: "{{ (playbook_dir + '/../../../deploy') | realpath }}"
 
     - name: Start nginx for Kubespray
       ansible.builtin.shell: |
@@ -34,6 +35,21 @@
         -v "{{ outputs_dir }}:/usr/share/nginx/html" \
         iguazio/nginx_server:latest
 
-    - name: Push k8s images to datanode registry
-      
+    - name: Find all tar.gz files in the directory
+      find:
+        paths:
+          - "{{ kubespray_dir }}/outputs/images"
+        patterns:
+          - "*.tar.gz"
+          - "*.tar"
+      register: tarballs
 
+    - name: Push k8s images to datanode registry
+      shell: |
+        python3 /usr/local/bin/push.py \
+        -sl "{{ tarballs.files | map(attribute='path') | list }}" \
+        -hf "{{ kompton_dir }}/group_vars/all/020_packaging.yml" \
+        -dr localhost:8009
+      args:
+        executable: /bin/bash
+      become: true

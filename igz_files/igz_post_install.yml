@@ -149,10 +149,3 @@
       with_items: "{{ containers_to_kill }}"
       tags:
         - skip_ansible_lint
-
-    - name: Stop and disable HAProxy service
-      ansible.builtin.systemd:
-        name: haproxy
-        state: stopped
-        enabled: false
-      become: true

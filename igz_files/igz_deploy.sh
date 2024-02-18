@@ -55,6 +55,7 @@ echo "==> Extract Kubespray"
 
 echo "==> Install python3.9 on controller"
 echo $SUDO_PASS | sudo -S rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
+echo $SUDO_PASS | sudo -S cp push.py /usr/local/bin/
 
 echo "==> Create venv and install requirements"
 python3.9 -m venv venv
