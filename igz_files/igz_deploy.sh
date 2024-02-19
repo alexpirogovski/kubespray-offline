@@ -8,20 +8,10 @@ BASEDIR="."
 FILES_DIR=./files
 KUBESPRAY_DIR_NAME=kubespray-$KUBESPRAY_VERSION
 BASEDIR=$(cd $BASEDIR; pwd)
-NGINX_IMAGE=iguazio/nginx_server:latest
 RESET="no"
 SKIP_INSTALL="no"
 SCALE_OUT="no"
-# Get the number of arguments
-num_args=$#
-# Get the last argument directly
-SUDO_PASS="${!num_args}"
 DEPLOYMENT_PLAYBOOK="cluster.yml"
-LOCAL_REGISTRY=${LOCAL_REGISTRY:-"localhost:${REGISTRY_PORT}"}
-
-run_with_sudo() {
-    echo $SUDO_PASS | sudo -S "$@"
-}
 
 ###### Flow starts here ##########################
 
@@ -57,12 +47,14 @@ if ! rpm -q python39-3.9.16-standalone.el7.x86_64 &> /dev/null; then
   echo "===> Install python3.9"
   rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
 else
-  echo "===> python3.9 is already installed"
+  echo "===> python3.9 is already installed"
 fi
 
+# Using hard-coded path because running as root and /usr/local/bin/ is not in its $PATH
 PYTHON39=/usr/local/bin/python3.9
 
-cp push.py /usr/local/bin/
+echo "==> Copy push script"
+cp igz_push.py /usr/local/bin/ || echo "Not copied"
 
 echo "==> Create venv and install requirements"
 cp $KUBESPRAY_DIR_NAME/requirements.txt .
@@ -93,6 +85,7 @@ echo "==> Copy Iguazio files"
 find ../ -maxdepth 1 -type f -name 'igz_*' -exec cp '{}' . ';'
 
 # Copy playbook for offline repo
+echo "==> Copy playbook for offline repo"
 cp -r ../playbook .
 
 # Run igz_preinstall playbook
@@ -111,9 +104,9 @@ fi
 
 # Run kubespray
 if [[ "${SKIP_INSTALL}" == "no" ]]; then
-    echo "==> Install  Kubernetes"
-    ansible-playbook -i inventory/igz/igz_inventory.ini $DEPLOYMENT_PLAYBOOK --become --extra-vars=@igz_override.yml
-    ansible-playbook -i inventory/igz/igz_inventory.ini igz_post_install.yml --become --extra-vars=@igz_override.yml
+  echo "==> Install  Kubernetes"
+  ansible-playbook -i inventory/igz/igz_inventory.ini $DEPLOYMENT_PLAYBOOK --become --extra-vars=@igz_override.yml
+  ansible-playbook -i inventory/igz/igz_inventory.ini igz_post_install.yml --become --extra-vars=@igz_override.yml
 fi
 
 popd

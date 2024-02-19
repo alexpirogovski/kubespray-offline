@@ -2,6 +2,7 @@ import os
 import ast
 import sys
 import yaml
+import shlex
 import logging
 import argparse
 import subprocess
@@ -64,7 +65,7 @@ def get_src(tarball):
 
 
 def build_skopeo_cmd(src, dest):
-    command = '/usr/bin/skopeo copy --dest-no-creds --dest-tls-verify=false --insecure-policy'
+    command = '/usr/bin/skopeo copy --dest-no-creds --dest-tls-verify=false '
     return f'{command} {src} {dest}'
 
 
@@ -84,6 +85,7 @@ def main():
         format='%(asctime)s:%(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
+    logger = logging.getLogger('skopeo')
 
     args = _parse_cli()
 
@@ -99,7 +101,11 @@ def main():
             dest = set_dest(processing_image, dest_repo)
             skopeo_command = build_skopeo_cmd(src, dest)
             logging.debug(f'Skopeo command: {skopeo_command}')
-            subprocess.check_output(skopeo_command.split(' '))
+            try:
+                subprocess.check_output(shlex.split(skopeo_command))
+            except subprocess.CalledProcessError as e:
+                logger.critical(e.stderr)
+                raise
 
 
 if __name__ == '__main__':

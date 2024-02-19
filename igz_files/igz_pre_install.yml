@@ -35,10 +35,20 @@
         -v "{{ outputs_dir }}:/usr/share/nginx/html" \
         iguazio/nginx_server:latest
 
+    - name: Force skopeo bin
+      unarchive:
+        src: /path/to/files/skopeo-1.14.0.tar.gz
+        dest: /usr/local/bin
+        remote_src: yes
+        owner: root
+        group: root
+        mode: 0o755
+      become: true
+
     - name: Find all tar.gz files in the directory
       find:
         paths:
-          - "{{ kubespray_dir }}/outputs/images"
+          - "{{ outputs_dir }}/images"
         patterns:
           - "*.tar.gz"
           - "*.tar"
