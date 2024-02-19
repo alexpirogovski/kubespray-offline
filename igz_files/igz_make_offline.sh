@@ -31,7 +31,7 @@ echo "===> Fetch requirements.txt"
 cp $KUBESPRAY_DIR/requirements.txt .
 
 echo "==> Download static binaries"
-wget -P /outputs/rpms https://artifactory.iguazeng.com:443/artifactory/iguazio-devops/opt_packages/centos7/python39-3.9.16-standalone.el7.x86_64.rpm
+wget -P /outputs/rpms https://artifactory.iguazeng.com:443/artifactory/iguazio-devops/opt_packages/centos7/python39-3.9.18-standalone.el7.x86_64.rpm
 wget -P /outputs/files https://artifactory.iguazeng.com:443/artifactory/iguazio-devops_virtual/opt_packages/skopeo-1.14.0.tar.gz
 
 echo "Download k8s requirements"

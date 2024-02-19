@@ -43,9 +43,9 @@ echo "==> Extract Kubespray"
 chown -R iguazio:iguazio .
 
 echo "==> Install python3.9 on controller"
-if ! rpm -q python39-3.9.16-standalone.el7.x86_64 &> /dev/null; then
+if ! rpm -q python39-3.9.18-standalone.el7.x86_64 &> /dev/null; then
   echo "===> Install python3.9"
-  rpm -ivh rpms/python39-3.9.16-standalone.el7.x86_64.rpm
+  rpm -ivh rpms/python39-3.9.18-standalone.el7.x86_64.rpm
 else
   echo "===> python3.9 is already installed"
 fi

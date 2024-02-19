@@ -37,7 +37,7 @@
 
     - name: Force skopeo bin
       unarchive:
-        src: /path/to/files/skopeo-1.14.0.tar.gz
+        src: "{{ outputs_dir }}/files/skopeo-1.14.0.tar.gz"
         dest: /usr/local/bin
         remote_src: yes
         owner: root
@@ -58,7 +58,7 @@
       shell: |
         python3 /usr/local/bin/igz_push.py \
         -sl "{{ tarballs.files | map(attribute='path') | list }}" \
-        -hf "{{ kompton_dir }}/group_vars/all/020_packaging.yml" \
+        -hf "{{ kompton_dir }}/inventory/group_vars/all/020_packaging.yml" \
         -dr localhost:8009
       args:
         executable: /bin/bash
