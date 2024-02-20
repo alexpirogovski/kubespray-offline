@@ -30,6 +30,16 @@
         group: iguazio
         mode: "0o755"
 
+    - name: Fix permissions in inventory dir
+      ansible.builtin.file:
+        path: "{{ inventory_dir }}"
+        state: directory
+        recurse: yes
+        owner: iguazio
+        group: iguazio
+        mode: "0o755"
+      become: true
+
     - name: Copy admin kube config file to node
       ansible.builtin.copy:
         src: "{{ inventory_dir }}/artifacts/admin.conf"
