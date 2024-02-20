@@ -37,8 +37,9 @@ if [ "$SCALE_OUT" == "yes" ]; then
  SKIP_INSTALL="no"
 fi
 
+echo ""
 echo "==> Extract Kubespray"
-./extract-kubespray.sh
+./extract-kubespray.sh > /dev/null 2>&1
 # The files in kubespray dir are owned by root and we don't like it
 chown -R iguazio:iguazio .
 
