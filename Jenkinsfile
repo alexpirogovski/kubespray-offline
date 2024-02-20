@@ -45,28 +45,17 @@ common.main {
 
             stage('build') {
                 dir('./') {
-                    parallel (
-                        "build_rocky8": {
-                            //buildContainer('rocky8', env.kubespray_hash)
-                            //runContainer('rocky8', env.kubespray_hash)
-                        }, // Closes build_rocky8 block
-                        "build_centos7": {
-                            buildContainer('centos7', env.kubespray_hash)
-                            runContainer('centos7', env.kubespray_hash)
-                        } // Closes build_centos7 block
-                    )
-                }
-            }
+                    buildContainer('centos7', env.kubespray_hash)
+                    runContainer('centos7', env.kubespray_hash)
+                } // Closes dir block
+            } // Closes build stage
+
 
             stage('merge assets and build ansible container') {
                 dir('./') {
-//                     sh("mv rocky8_outputs/rpms rocky8_outputs/rocky8_rpms")
-//                     sh("mv centos7_outputs/rpms centos7_outputs/centos7_rpms")
                     sh("rm -rf outputs")
                     sh("ls -la")
                     sh("mv centos7_outputs outputs/")
-//                     sh("mv centos7_outputs/centos7_rpms outputs")
-//                     sh("igz_files/igz_build_ansible.sh")
                 }
             }
 
