@@ -1,9 +1,6 @@
 #!/bin/bash
 
 BASEDIR=$(cd $(dirname $0)/..; pwd)
-TESTDIR=$BASEDIR/test
-
-# Go to outputs dir
 cd $BASEDIR/outputs
 source ./config.sh
 
@@ -19,13 +16,14 @@ prepare_servers() {
     #set -x
 
     # Remove default route to emulate offline
-    $TESTDIR/go-offline.sh
+    sudo ip route save >iproute.bin
+    sudo ip route del default
 
     # setup
     ./setup-all.sh || exit 1
 
     # Restore default route
-    $TESTDIR/restore-offline.sh
+    sudo ip route restore <iproute.bin
 
     # remove all images
     images=$(cat images/*.list)
